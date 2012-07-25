@@ -878,6 +878,9 @@ function runSuite(title, tests, callback) {
 
 require('util').inherits(Test, require('events').EventEmitter);
 function Test(options) {
+    this.domain = require('domain').create();
+    this.domain.on('error', this.failure.bind(this));
+
     for (var key in options) {
         this[key] = options[key];
     }
@@ -911,24 +914,28 @@ Test.prototype.report = function() {
     for (var i = 0; i < this._pending.length; i++) {
         this.error(this._pending[i]);
     }
+    this.domain.dispose();
 };
 
 Test.prototype.run = function(callback) {
-    try {
-        ++testcount;
-        assert._test = this;
+    var self = this;
+    this.domain.run(function() {
+        try {
+            ++testcount;
+            assert._test = self;
 
-        if (serial) {
-            this.runSerial(callback);
-        } else {
-            // @TODO: find a way to run setup/tearDown.
-            this.runParallel();
-            callback();
+            if (serial) {
+                self.runSerial(callback);
+            } else {
+                // @TODO: find a way to run setup/tearDown.
+                self.runParallel();
+                callback();
+            }
+        } catch (err) {
+            self.failure(err);
+            self.report();
         }
-    } catch (err) {
-        this.failure(err);
-        this.report();
-    }
+    });
 };
 
 Test.prototype.runSerial = function(callback) {
@@ -1030,15 +1037,6 @@ var unknownTest = new Test({
     test: 'uncaught'
 });
 var serialTest;
-
-process.on('uncaughtException', function(err) {
-    if (!serial) {
-        unknownTest.error(err);
-    } else {
-        serialTest.failure(err);
-        serialTest.callback();
-    }
-});
 
 // Show cursor
 
