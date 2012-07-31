@@ -1,7 +1,6 @@
 
 PREFIX ?= /usr/local
 BIN = bin/expresso
-JSCOV = deps/jscoverage/node-jscoverage
 DOCS = docs/index.md
 HTMLDOCS = $(DOCS:.md=.html)
 
@@ -14,23 +13,13 @@ test-cov:
 test-serial:
 	@./$(BIN) --serial $(TEST_FLAGS) test/serial/*.test.js
 
-install: install-jscov install-expresso
+install: install-expresso
 
 uninstall:
 	rm -f $(PREFIX)/bin/expresso
-	rm -f $(PREFIX)/bin/node-jscoverage
-
-install-jscov: $(JSCOV)
-	install $(JSCOV) $(PREFIX)/bin
 
 install-expresso:
 	install $(BIN) $(PREFIX)/bin
-
-$(JSCOV):
-	cd deps/jscoverage && ./configure && make && mv jscoverage node-jscoverage
-
-clean:
-	@cd deps/jscoverage && git clean -fd
 
 docs: docs/api.html $(HTMLDOCS)
 
@@ -50,4 +39,4 @@ docs/api.html: bin/expresso
 docclean:
 	rm -f docs/*.html
 
-.PHONY: test test-cov install uninstall install-expresso install-jscov clean docs docclean
+.PHONY: test test-cov install uninstall install-expresso clean docs docclean
